@@ -30,12 +30,22 @@ uploaded_file = st.file_uploader("Upload a JSON file", type=["json"])
 if uploaded_file is not None:
     # Read and process JSON file
     try:
-        data = json.load(uploaded_file)
+        raw_data = uploaded_file.read().decode('utf-8')
+        data = json.loads(f"[{raw_data.replace('}{', '},{')}]")
     except json.JSONDecodeError:
         st.error("Error decoding JSON. Please check the file format.")
         st.stop()
 
-    df = pd.json_normalize(data)
+    # Flatten the JSON
+    messages = []
+    for item in data:
+        try:
+            msg = json.loads(item['message'])
+            messages.append(msg)
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    df = pd.json_normalize(messages)
 
     # Assuming the JSON has 'value' field for analysis
     if 'value' in df.columns:
